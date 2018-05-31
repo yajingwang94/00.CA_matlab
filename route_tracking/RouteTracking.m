@@ -2,12 +2,12 @@ function RouteTracking()
 clear all
 clc
 %% global veriables
-N = 10;
-T=0.05;
+N = 5;
+T=0.1;
 xref = zeros(N,4);
-wind = [2, 1.5, 0];
+wind = [0, 0, 0];
 V = 19;
-mpciterations = 2000;
+mpciterations = 2200;
 time = [];
 xstate = [];
 ucontrol = [];
@@ -18,11 +18,11 @@ XC = [];
 YC = [];
 %% initial states and parameters
 t0 = 0;
-x = 30;
+x = 0;
 y = 0;
 psi = 0;
 s = 10;
-u0 = 0.5 * zeros(1,N);
+u0 = 0.1 * ones(1,N);
 %u0 = [19,19,19;0.5,0.5,0.5];
 x0 = zeros(1,3);
 step = V * T;
@@ -95,7 +95,7 @@ while(mpciter < mpciterations)
     end  
     mpciter = mpciter+1;  
 end
-
+%save('D:\code\00.obstAvoid_matlab\route_tracking\param_analysis\N_T_analysis\N5T02.mat','X','Y');
 %% Plot 
 figure
 plot(xctlp,yctlp,':'); % 绘制控制多边形；

@@ -2,12 +2,12 @@ function RouteTracking()
     clear all
     clc
     %% initialization
-    N = 8;
-    T=0.2;%02;
+    N = 10;
+    T = 0.05;
     xref = zeros(N,4);
     wind = [0, 0, 0];
-    V = 18;
-    mpciterations = 2500;
+    V = 19;
+    mpciterations =2000;
     time = [];
     xstate = [];
     ucontrol = [];
@@ -21,13 +21,15 @@ function RouteTracking()
     y = 0;
     psi = 0;
     s = 10;
-    u0 = 0.5 * zeros(1,N);
+    u0 = 0.3 * ones(1,N);
     %u0 = [19,19,19;0.5,0.5,0.5];
     x0 = zeros(1,3);
     step = V * T;
     numOfObst = 2;
     obst = zeros(5,numOfObst);
     safeRadOfUAV = 20;
+    disToObst2 = zeros(1,numOfObst);
+    obstIni = zeros(5, numOfObst);
 
     %% B spline
     ctlp=[-124.3241,-124.3178,-124.3150,-124.3171,-124.3244;48.2669,48.2681,48.2646,48.2610,48.2622];
@@ -38,16 +40,31 @@ function RouteTracking()
     end
     splinelength=2508.618390858;
     
-    obst(1,1) = xctlp(2);
-    obst(2,1) = yctlp(2);
-    obst(3,1) = 10; % 障碍物的半径
-    obst(4,1) = 0;
-    obst(5,1) = 0;
-     obst(1,2) = xctlp(3);
-    obst(2,2) = yctlp(3);
-    obst(3,2) = 10; % 障碍物的半径
-    obst(4,2) = 0;
-    obst(5,2) = 0;
+    figure
+    plot(xctlp,yctlp,':');
+    hold on;
+    
+%    obst(1,1) = xctlp(2);
+%    obst(2,1) = yctlp(2);
+%    obst(3,1) = 10; % 障碍物的半径
+%    obst(4,1) = 0;  %障碍物的速度大小
+%    obst(5,1) = 0;  % 障碍物的速度方向
+%     obst(1,2) = xctlp(3);
+%    obst(2,2) = yctlp(3);
+%    obst(3,2) = 10; % 障碍物的半径
+%    obst(4,2) = 0;
+%    obst(5,2) = 0;            
+    
+    obstIni(1,1) = xctlp(2);
+    obstIni(2,1) = yctlp(2);
+    obstIni(3,1) = 10; % 障碍物的半径
+    obstIni(4,1) = 0;  %障碍物的速度大小
+    obstIni(5,1) = 0;  % 障碍物的速度方向
+     obstIni(1,2) = xctlp(3);
+    obstIni(2,2) = yctlp(3);
+    obstIni(3,2) = 10; % 障碍物的半径
+    obstIni(4,2) = 0;
+    obstIni(5,2) = 0;
     
     %% The iterative process
     mpciter = 1;
@@ -64,6 +81,21 @@ function RouteTracking()
         end
         % Step (1) of the NMPC algorithm: Obtain new initial value
         x0 = [x, y, psi];
+        
+        % refresh the position of obstacles
+        for i = 1:numOfObst
+            disToObst2(i) = (obstIni(1,i) - x)^2 + (obstIni(2,i) - y)^2;
+            if disToObst2(i) <= 10000  %否则，速度等于0
+                obstIni(4,i) = 0;%6;
+                obstIni(5,i) = 0;%-1.57;
+                rectangle('Position',[obst(1,i)-safeRadOfUAV,obst(2,i)-safeRadOfUAV,2*safeRadOfUAV,2*safeRadOfUAV],'Curvature',[1,1],'linewidth',1);
+                hold on;
+            else
+                obstIni(4,i) = 0;
+            end
+            obst(:,i) = obstIni(:,i);
+        end
+            
         % Step (2) of the NMPC algorithm: Solve the optimal control problem
         [u_new, V_current, exitflag, output] = solveOptimalControlProblem ...
                 (@runningcosts, @terminalcosts, @obstCost, @constraints, ...
@@ -92,6 +124,13 @@ function RouteTracking()
         x = x0(1) + T/2 * (V * (cos(x0(3)) + cos(x0(3) + u_new(1))) + 2 * wind(1));
         y = x0(2) + T/2 * (V * (sin(x0(3)) + sin(x0(3) + u_new(1))) + 2 * wind(2));
         psi = x0(3) + T/2 * 3 * u_new(1) + 2 * wind(3);
+        
+        for i = 1:numOfObst
+            obstIni(1,i) = obst(1,i) + T * obstIni(4,i)* cos(obstIni(5,i));
+            obstIni(2,i) = obst(2,i) + T * obstIni(4,i)* sin(obstIni(5,i));
+        end
+            
+            
         if psi>pi
                 psi = psi-2*pi;
         elseif psi<-pi
@@ -103,23 +142,30 @@ function RouteTracking()
         else
                 s = s + 20;
         end  
-        mpciter = mpciter+1;  
+        mpciter = mpciter+1;
+        
+        %% plot
+         
+      %  for cir = 1:numOfObst
+      %      rectangle('Position',[obst(1,cir)-safeRadOfUAV,obst(2,cir)-safeRadOfUAV,2*safeRadOfUAV,2*safeRadOfUAV],'Curvature',[1,1],'linewidth',1);
+       %     hold on;
+      %  end
     end
 
     %% Plot 
-    figure
-    plot(xctlp,yctlp,':'); % 绘制控制多边形；
+  %  figure
+  %  plot(xctlp,yctlp,':'); % 绘制控制多边形；
     %plot(x,y,':'); % 绘制控制多边形；
-    hold on; % 默认为hold off，此命令用来保留控制多边形的图形；
+  %  hold on; % 默认为hold off，此命令用来保留控制多边形的图形；
 
     plot(X,Y,'b')
     hold on;
     plot(XC,YC,'r')
     hold on;
-    for cir = 1:numOfObst
-        rectangle('Position',[obst(1,cir)-safeRadOfUAV,obst(2,cir)-safeRadOfUAV,2*safeRadOfUAV,2*safeRadOfUAV],'Curvature',[1,1],'linewidth',1);
-        hold on;
-    end
+%    for cir = 1:numOfObst
+%        rectangle('Position',[obst(1,cir)-safeRadOfUAV,obst(2,cir)-safeRadOfUAV,2*safeRadOfUAV,2*safeRadOfUAV],'Curvature',[1,1],'linewidth',1);
+%        hold on;
+%    end
     axis equal;
 end
 

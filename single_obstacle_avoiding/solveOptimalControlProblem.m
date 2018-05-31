@@ -69,7 +69,7 @@ function cost = costfunction(runningcosts, terminalcosts, obstCost, system, ...
             obst_pre(2,j) = obst(2,j) + obst(4,j) * k * T * sin(obst(5,j));
             obst_pre(3,j) = obst(3,j);
             obst_pre(4,j) = obst(4,j);
-            obst_pre(4,j) = obst(4,j);
+            obst_pre(5,j) = obst(5,j);
         end
         cost = cost + obstCost(x(k,:), obst_pre, numOfObst);
     end
@@ -90,7 +90,7 @@ function [c,ceq] = nonlinearconstraints(constraints, ...
             obst_pre(2,j) = obst(2,j) + obst(4,j) * k * T * sin(obst(5,j));
             obst_pre(3,j) = obst(3,j);
             obst_pre(4,j) = obst(4,j);
-            obst_pre(4,j) = obst(4,j);
+            obst_pre(5,j) = obst(5,j);
         end
         [cnew, ceqnew] = constraints(t0+k*T, x(k,:), x(k+1,:), u(:,k), obst_pre, numOfObst, T, w, V);
         c = [c cnew];
