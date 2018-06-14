@@ -1,4 +1,4 @@
-function RouteTracking()
+function RouteTrackingforStraightLine()
 clear all
 clc
 %% global veriables
@@ -18,7 +18,7 @@ XC = [];
 YC = [];
 %% initial states and parameters
 t0 = 0;
-x = 0;
+x = 30;
 y = 0;
 psi = 0;
 s = 10;
@@ -28,27 +28,28 @@ x0 = zeros(1,3);
 step = V * T;
 
 %% B spline
-ctlp=[-124.3241,-124.3178,-124.3150,-124.3171,-124.3244;48.2669,48.2681,48.2646,48.2610,48.2622];
-xctlp=[0,0,0,0,0];
-yctlp=[0,0,0,0,0];
-for i=1:5 
-   [xctlp(i),yctlp(i)]=ConvertLL2XY(ctlp(1,1), ctlp(2,1), ctlp(1,i), ctlp(2,i));
-end
+%ctlp=[-124.3241,-124.3178,-124.3150,-124.3171,-124.3244;48.2669,48.2681,48.2646,48.2610,48.2622];
+%xctlp=[0,0,0,0,0];
+%yctlp=[0,0,0,0,0];
+%for i=1:5 
+%   [xctlp(i),yctlp(i)]=ConvertLL2XY(ctlp(1,1), ctlp(2,1), ctlp(1,i), ctlp(2,i));
+%end
 splinelength=2508.618390858;
 
-
+ 
 
 %% The iterative process
 mpciter = 1;
 while(mpciter < mpciterations)
     if s >= splinelength
         s=0;
+        break
     end
     %%%%% The prediction of the N reference points 
     count = 1;
     while count <= N
         stemp = s + (count - 1) * step;
-        xref(count,:) = BSpline(stemp);
+        xref(count,:) = straightLine(stemp);
         count = count + 1;
     end
     %% Step (1) of the NMPC algorithm: Obtain new initial value
@@ -70,8 +71,7 @@ while(mpciter < mpciterations)
     %S(mpciter)=s;
     XC(mpciter)=xref(1,1);
     YC(mpciter)=xref(1,2);
-    %KSI(mpciter) = psi; 
-    SSS(mpciter)=xref(1,4);
+    %KSI(mpciter) = psi;        
       
     %   Prepare restart
     u0 = shiftHorizon(u_new);
@@ -89,24 +89,19 @@ while(mpciter < mpciterations)
             psi = psi+2*pi;
     end	
     ds = sqrt((x-xref(1,1))^2 + (y-xref(1,2))^2);
-    if ds > 30
+    if ds > 50
             s = s;
     else
-            s = s + 20;
+            s = s + 30;
     end  
     mpciter = mpciter+1;  
 end
 %save('D:\code\00.obstAvoid_matlab\route_tracking\param_analysis\N_T_analysis\N5T02.mat','X','Y');
-
-save('D:\03.code\data_analysis\SS_5_01.mat','SSS');
-
-figure
-plot(SSS);
 %% Plot 
 figure
-plot(xctlp,yctlp,':'); % 绘制控制多边形；
+%plot(xctlp,yctlp,':'); % 绘制控制多边形；
 %plot(x,y,':'); % 绘制控制多边形；
-hold on; % 默认为hold off，此命令用来保留控制多边形的图形；
+%hold on; % 默认为hold off，此命令用来保留控制多边形的图形；
 
 plot(X,Y,'b')
 hold on;
@@ -147,6 +142,12 @@ function [A, b, Aeq, beq, lb, ub] = linearconstraints(t, x, u)
     ub  = [5];
 end
 
+function [x, y, psi] = straightLine(s)
+    k = 3;
+    x = sqrt(s^2/(1+k^2));
+    y = k * x;
+    psi = atan(k);
+end
 
 function x_next = system(t, x, u, T, w)
     v = 19;
