@@ -49,7 +49,7 @@ while(mpciter < mpciterations)
     count = 1;
     while count <= N
         stemp = s + (count - 1) * step;
-        xref(count,:) = straightLine(stemp);
+        [xref(count,1),xref(count,2),xref(count,3)] = straightLine(stemp)
         count = count + 1;
     end
     %% Step (1) of the NMPC algorithm: Obtain new initial value
@@ -96,7 +96,7 @@ while(mpciter < mpciterations)
     end  
     mpciter = mpciter+1;  
 end
-%save('D:\code\00.obstAvoid_matlab\route_tracking\param_analysis\N_T_analysis\N5T02.mat','X','Y');
+save('D:\03.code\data_analysis\RT_straight_line\SL_N5T01.mat','X','Y');
 %% Plot 
 figure
 %plot(xctlp,yctlp,':'); % 绘制控制多边形；
@@ -144,7 +144,7 @@ end
 
 function [x, y, psi] = straightLine(s)
     k = 3;
-    x = sqrt(s^2/(1+k^2));
+    x = s / sqrt(1+k^2);
     y = k * x;
     psi = atan(k);
 end
