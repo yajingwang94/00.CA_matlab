@@ -3,7 +3,7 @@ clear all
 clc
 %% global veriables
 N = 5;
-T=0.1;
+T=0.05;
 xref = zeros(N,4);
 wind = [0, 0, 0];
 V = 19;
@@ -98,12 +98,12 @@ while(mpciter < mpciterations)
 end
 %save('D:\code\00.obstAvoid_matlab\route_tracking\param_analysis\N_T_analysis\N5T02.mat','X','Y');
 
-save('D:\03.code\data_analysis\SS_5_01.mat','SSS');
+save('D:\03.code\data_analysis\SS_5_005.mat','SSS');
 
 figure
 plot(SSS);
 %% Plot 
-figure
+figure(2)
 plot(xctlp,yctlp,':'); % 绘制控制多边形；
 %plot(x,y,':'); % 绘制控制多边形；
 hold on; % 默认为hold off，此命令用来保留控制多边形的图形；
