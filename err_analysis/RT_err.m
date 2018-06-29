@@ -1,7 +1,8 @@
 function TR_err_1()
 clc;
 clear;
-load('D:\code\RT_wind_analysis\wind8_test1.mat')
+load('D:\03.code\data_analysis\RT_s_forward\N5T005_test.mat')
+
 x1 = X;
 y1 = Y;
 
@@ -50,7 +51,7 @@ for i = 1:1:n
 end
 mean_err = total_err / n;
 
-save('D:\code\RT_wind_analysis\wind8_test1_err.mat','minDis1','mean_err');
+save('D:\03.code\data_analysis\RT_s_forward\N5T005_test_err.mat','minDis1','mean_err');
 
 figure(2)
 plot(minDis1);
