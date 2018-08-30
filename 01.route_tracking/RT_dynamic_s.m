@@ -28,7 +28,7 @@ x0 = zeros(1,3);
 
 
 %% B spline
-ctlp=[-124.3241,-124.3178,-124.3150,-124.3171,-124.3244;48.2669,48.2681,48.2646,48.2610,48.2622];
+ctlp=[-124.3241,-124.3178,-124.3150,-124.3171,-124.3244; 48.2669,48.2681,48.2646,48.2610,48.2622];
 xctlp=[0,0,0,0,0];
 yctlp=[0,0,0,0,0];
 for i=1:5 
@@ -50,7 +50,7 @@ while(mpciter < mpciterations)
     count = 1;
     while count <= N
         stemp = s + (count - 1) * step;
-        xref(count,:) = BSpline(stemp);
+        xref(count,:) = BSpline(stemp);    %函数返回的坐标在哪个坐标系下？
         count = count + 1;
     end
     %% Step (1) of the NMPC algorithm: Obtain new initial value
@@ -128,9 +128,9 @@ save('D:\03.code\data_analysis\RT_s_forward\N5T005_test.mat','X', 'Y');
 %plot(SSS);
 %% Plot 
 figure(2)
-plot(xctlp,yctlp,':'); % ���ƿ��ƶ���Σ�
-%plot(x,y,':'); % ���ƿ��ƶ���Σ�
-hold on; % Ĭ��Ϊhold off�������������������ƶ���ε�ͼ�Σ�
+plot(xctlp,yctlp,':'); % »æÖÆ¿ØÖÆ¶à±ßÐÎ£»
+%plot(x,y,':'); % »æÖÆ¿ØÖÆ¶à±ßÐÎ£»
+hold on; % Ä¬ÈÏÎªhold off£¬´ËÃüÁîÓÃÀ´±£Áô¿ØÖÆ¶à±ßÐÎµÄÍ¼ÐÎ£»
 
 plot(X,Y,'b')
 hold on;
