@@ -1,4 +1,4 @@
-function multi_RouteTracking_circle()
+function multi_RouteTracking_rectangle()
 clear all
 clc
 %% global veriables
@@ -25,12 +25,12 @@ UCON2 = [];
 FLAG2 = [];
 Dis2 = [];
 COOPCost2 = [];
-X21 = [];
-Y21 = [];
+X2rec = [];
+Y2rec = [];
 %% initial states and parameters
 t0 = 0;
-x = 0;%200;
-y = - 300;%0; % in N-E-E coordination system
+x = 530;%200;
+y = -570;%0; % in N-E-E coordination system
 psi = 0;
 u0 = -0.3 * ones(1,N);%0.3 * ones(1,N);
 x0 = zeros(1,3);
@@ -41,76 +41,86 @@ other_u0 = [];
 Dis = 0;
 COOPCost = 0;
 %% Ô²¹ì¼£·½³Ì  ÔÚX¡ª¡ªY×ø±êÏµÖÐ
-     R = 300;
-     splinelength = 2 * pi * R;     
-     s = pi*150;    % ³õÊ¼µã¶ÔÓ¦µÄ»¡³¤
-     %theta = s / R
-     % if theta > pi
-     %           theta = theta - 2 * pi;
-     % elseif theta < - pi
-     %           theta = theta + 2 * pi;
-     % end	    
-     %xf = R * cos(theta);
-     %yf = R * sin(theta);  %²Î¿¼µãÔÚX¡ª¡ªY×ø±êÏµÄÚµÄ×ø±ê
-     %xprim = -sin(theta);
-     %yprim = cos(theta);
-     %psif = atan2(yprim,xprim)+ 2*pi;
-     %if theta >= 0 
-     %    psif = pi/2 - theta;
-     %elseif theta >= -pi/2
-     %    psif = pi/2 - theta;
-     %elseif theta < -pi/2 
-     %    psif = -3*pi/2 - theta;
-     %end                                %µÃµ½³õÊ¼µãÔÚ±±¶«µØ×ø±êÏµÄÚµÄ³õÊ¼º½Ïò½Ç
-     % if psif > pi
-   %             psif = psif - 2 * pi;
-   %  elseif psif < - pi
-    %            psif = psif + 2 * pi;
-   %  end    
-     
-     %psif = -pi - theta;
-     
-%% communication     
-%    receive_server = tcpip('0.0.0.0', 30001, 'NetworkRole', 'server');
-%Open a connection. This will not return until a connection is received.
-%set(t,'BytesAvailable',100)
-%    fopen(receive_server);
-    send_client = tcpip('localhost', 30000, 'NetworkRole', 'client');
-    fopen(send_client)
+     splinelength = 1560;%800;%2 * pi * R;     
+     s = splinelength - 650;    % ³õÊ¼µã¶ÔÓ¦µÄ»¡³¤
     
-     receive_server = tcpip('0.0.0.0', 30001, 'NetworkRole', 'server');
-%Open a connection. This will not return until a connection is received.
-%set(t,'BytesAvailable',100)
-    fopen(receive_server);
+%% communication   
 
+    send_client_1 = tcpip('localhost', 30000, 'NetworkRole', 'client');
+    fopen(send_client_1)
+    
+    success = 1
+    
+    receive_server_1 = tcpip('127.0.0.1', 30003, 'NetworkRole', 'server');
+    fopen(receive_server_1)
+    
+    success = 2
+    
+    receive_server_2 = tcpip('127.0.0.1', 30004, 'NetworkRole', 'server');
+    fopen(receive_server_2)
+    
+    success = 3
+    
+    send_client_2 = tcpip('localhost', 30007, 'NetworkRole', 'client');
+    fopen(send_client_2)  
+    
+    success = 4
+    %receive_server_3 = tcpip('127.0.0.1', 30005, 'NetworkRole', 'server');
+    %fopen(receive_server_3)
+    
+   % success = 5
+
+    %send_client_3 = tcpip('localhost', 30010, 'NetworkRole', 'client');
+    %fopen(send_client_3)
+    %success = 6
 
 %% The iterative process
 mpciter = 1;
 while(mpciter < mpciterations)
+
+    turns = 1;
     if s <= 10
        s = splinelength - 10;   % Ë³Ê±Õë·½Ïò£¬s¼õÐ¡
 		%break;
+        turns = turns+1;
     end
     %%%%% The prediction of the N reference points 
     count = 1;
+    s_temp = 0;
     while count <= N
         s_temp = s - (count - 1) * step;
-        [xref(count,1), xref(count,2), xref(count,3)] = getRef_2(s_temp, N , R);
+        [xref(count,1), xref(count,2), xref(count,3)] = rectangle(s_temp, turns);
         count = count + 1;
     end
     %% Step (1) of the NMPC algorithm: Obtain new initial value
     x0 = [x, y, psi];     %Ã¿Ò»Ê±¿Ì³õÊ¼×´Ì¬ÔÚ±±¶«µØ×ø±êÏµÏÂµÄ×ø±ê±íÊ¾
 	
-     %rec = fread(receive_server, 8);
-     rec = fread(receive_server, 8, 'double');
-     %rec = fscanf(receive_server, '%f', 8)
+     rec = fread(receive_server_1, 8, 'double')
      size = whos('rec');
      if(size.size>0)
      other_state(1,:) = rec(1:3);
-     other_u0(1,:) = rec(4:8); 
-     X21(mpciter) = rec(1);
-     Y21(mpciter) = rec(2);
+     other_u0(1,:) = rec(4:8);
+     X2rec(1,mpciter)=rec(1);
+     Y2rec(1,mpciter)=rec(2);
      end
+     
+     rec = fread(receive_server_2, 8, 'double')
+     size = whos('rec');
+     if(size.size>0)
+     other_state(2,:) = rec(1:3);
+     other_u0(2,:) = rec(4:8);
+     X2rec(2,mpciter)=rec(1);
+     Y2rec(2,mpciter)=rec(2);
+     end
+     
+    % rec = fread(receive_server_3, 8, 'double')
+    % size = whos('rec');
+    % if(size.size>0)
+    % other_state(3,:) = rec(1:3);
+   %  other_u0(3,:) = rec(4:8);
+   %  X2rec(3,mpciter)=rec(1);
+   %  Y2rec(3,mpciter)=rec(2);
+   %  end
      
     
     %% Step (2) of the NMPC algorithm: Solve the optimal control problem
@@ -120,15 +130,12 @@ while(mpciter < mpciterations)
             N, t0, x0, u0, T, wind, xref, other_state, other_u0);
     %   Store closed loop data
 	u0 = shiftHorizon(u_new);
-	%other_state(1,:) = x0;  %%Ã¿Ò»ÐÐ´ú±íÒ»¼ÜÁÚ»ú
-	%other_u0(1,:) = u0;
-	
-    %Time(mpciter)=T*(mpciter-1);
+    
     X2(mpciter) = x;
     Y2(mpciter) = -y;  % Y records the coordination in X-Y system
     PSI2(mpciter) = psi;
     XC2(mpciter) = xref(1,1);
-    YC2(mpciter) = xref(1,2);
+    YC2(mpciter) = - xref(1,2);
     PSIF2(mpciter) = xref(1,3);
     JVALUE2(mpciter) = V_current;
     UCON2(mpciter) = u_new(1);
@@ -137,18 +144,17 @@ while(mpciter < mpciterations)
     COOPCost2(mpciter) = COOPCost;
     
     %Ä¿Ç°´«ÊäµÄÐÅÏ¢Ö»°üº¬µ±Ç°Ê±¿ÌµÄ×´Ì¬ÐÅÏ¢ÒÔ¼°µ±Ç°Ê±¿ÌµÄÓÅ»¯¿ØÖÆÐòÁÐ£¬²»°üº¬Î´À´Ô¤²âÊ±ÓòÄÚµÄ²Î¿¼×´Ì¬ÐÅÏ¢ 
-    send_data = zeros(1,6);
-    send_data(1:3)=[x,y,psi];   %ÔÚ±±¶«µØ×ø±êÏµÏÂµÄ×ø±ê
+    send_data = zeros(1,8);
+    %send_data(1) = 2;
+    send_data(1:3)=[x,y,psi];
     send_data(4:8)=u0;
     send_data
-    %fwrite(send_client, send_data) 
-    %fprintf(send_client, '%f',send_data)
+    %fwrite(send_client, send_data)
     for i = 1:8
-        fwrite(send_client, send_data(i), 'double') 
+        fwrite(send_client_1, send_data(i), 'double')
+        fwrite(send_client_2, send_data(i), 'double')
+      %  fwrite(send_client_3, send_data(i), 'double')
     end
-    %fprintf(send_client, send_data(1), send_data(2) )
-    %   Prepare restart
-    
 	
     t0 = t0 + T;
     %% Step (3) of the NMPC algorithm: Apply control to process
@@ -163,26 +169,25 @@ while(mpciter < mpciterations)
     end	
 	
     ds = sqrt((x - xref(1,1))^2 + (y - xref(1,2))^2);
-    if ds > 40
+    if ds > 30
             s = s;
     else    % Ë³Ê±Õë
-            s = s - 20;
+            s = s - 15;
     end  
     mpciter = mpciter+1 
 end
-fclose(receive_server);
-fclose(send_client);
+fclose(receive_server_1);
+fclose(receive_server_2);
+%fclose(receive_server_3);
+fclose(send_client_1);
+fclose(send_client_2);
+%fclose(send_client_3);
 
-save('D:\03.code\data_analysis\multi_circle\UAV2_test0830_R300_2.mat','X2','Y2', 'PSI2', 'XC2','YC2','PSIF2', 'JVALUE2', 'UCON2', 'FLAG2', 'Dis2', 'COOPCost2', 'X21', 'Y21');
+save('D:\03.code\data_analysis\four_UAV_test\rectangle0904_2_uav2.mat','X2','Y2', 'PSI2', 'XC2','YC2','PSIF2', 'JVALUE2', 'UCON2', 'FLAG2', 'Dis2', 'COOPCost2', 'X2rec', 'Y2rec');
 %% Plot 
 figure
-%plot(xctlp,yctlp,':'); % »æÖÆ¿ØÖÆ¶à±ßÐÎ£»
-%hold on; % Ä¬ÈÏÎªhold off£¬´ËÃüÁîÓÃÀ´±£Áô¿ØÖÆ¶à±ßÐÎµÄÍ¼ÐÎ£»
-
 plot(X2,Y2,'b')
 hold on;
-%plot(X1,Y1,'g')
-%hold on;
 plot(XC2,YC2,'r')
 hold on;
 axis equal;
@@ -192,7 +197,8 @@ end
 % need thinking % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 function cost = runningcosts(x, xd, u)
     %cost = norm(x - xd, 2)^2;%+norm(u,2)^2;
-    cost = (x(1) - xd(1))^2 + (x(2) - xd(2))^2;
+    %cost = (x(1) - xd(1))^2 + (x(2) - xd(2))^2;
+    cost = norm(x - xd, 2)^2;
 end
 
 function cost = terminalcosts(t, x)
@@ -201,7 +207,7 @@ function cost = terminalcosts(t, x)
 end
 
 function cost = coopCost(x, x_others)
-    k1 = 100;
+    k1 = 200;
     %k2 = 25;
     sigma = 100;%200;
     cost = 0.0;
@@ -242,12 +248,15 @@ end
 
 function [c,ceq] = collAvoid_constraints(system, x,t0, N, T, x_other)
     c = 0;
-	d_safe = 40;
+	d_safe = 50;
     num_of_others = size(x_other, 1);
 	for i = 1:num_of_others
 		dis_2 = (x(1) - x_other(i,1))^2 + (x(2) - x_other(i,2))^2;
-		
-		c_add = d_safe^2 - dis_2;
+		if dis_2 > 10000
+            c_add = 0;
+        else
+            c_add = d_safe^2 - dis_2;
+        end
         c   = c + c_add;
 	end
     ceq = [];
@@ -281,27 +290,7 @@ function u0 = shiftHorizon(u)
     u0 = [u(:,2:size(u,2)) u(:,size(u,2))];
 end
 
-function [xref, yref, psiref] = getRef(s, N, R)
-% reverse direction of the circle
-     theta = s / R;
-      if theta > pi
-                theta = theta - 2 * pi;
-        elseif theta < - pi
-                theta = theta + 2 * pi;
-        end	
-     xref = R * cos(theta);
-     yref = - R * sin(theta); % use the N-E-E coordination
-     %xprim = -sin(theta);
-     %yprim = cos(theta);
-     %psiref = atan2(yprim,xprim);
-     if theta <= 0 
-        psiref = -theta - pi/2;
-    elseif theta <= pi/2
-        psiref = - theta - pi/2;
-    elseif theta > pi/2
-            psiref = 3*pi/2 - theta;
-        end
-end
+
 
 function [xref, yref, psiref] = getRef_2(s, N, R)
 % Ë³Ê±Õë·½Ïò¼ÆËã²Î¿¼µãºÍ²Î¿¼º½Ïò½Çalong the direction of the circle
@@ -330,4 +319,25 @@ function [xref, yref, psiref] = getRef_2(s, N, R)
      %           psiref = psiref + 2 * pi;
     % end
      
+end
+
+function [x, y, psi] = rectangle(s, turns)
+    % second, along the time circle
+    if s < 140
+        x = 12 + s * 3 / 5;
+        y = -(184 - s * 4 / 5);
+        psi = -pi + atan2(4,3);
+    elseif s < 780
+        x = 96 + (s - 140) * 4 / 5;
+        y = -(72 + (s - 140) * 3 / 5);
+        psi = pi - atan2(3,4);
+    elseif s < 920
+        x = 608 - (s - 780) * 3 / 5;
+        y = -(456 + (s - 780) * 4 / 5);
+        psi = atan2(4,3);
+    else
+        x = 524 - (s - 920) * 4 / 5;
+        y = -(568 - (s - 920) * 3 / 5);
+        psi = atan2(-3,4);
+    end
 end

@@ -1,4 +1,4 @@
-function multi_RouteTracking_circle()
+function multi_RouteTracking_rectangle()
 clear all
 clc
 %% global variebles
@@ -14,24 +14,24 @@ wind = [0, 0, 0];
 V = 19;
 mpciterations =2000;
 xRef = [];
-X1 = [];
-Y1 = [];
-XC1 = [];
-YC1 = [];
-PSI1 = [];
-PSIF1 = [];
-JVALUE1 = [];
-UCON1= [];
-FLAG1 = [];
-Dis1 = [];
-COOPCost1 = [];
-X12 = [];
-Y12 = [];
+X3 = [];
+Y3 = [];
+XC3 = [];
+YC3 = [];
+PSI3 = [];
+PSIF3 = [];
+JVALUE3 = [];
+UCON3= [];
+FLAG3 = [];
+Dis3 = [];
+COOPCost3 = [];
+X3rec = [];
+Y3rec = [];
 %% initial states and parameters
 t0 = 0;
-x = 300;
-y = 0;     %³õÊ¼Ê±¿ÌµÄÎ»ÖÃÔÚ±±¶«µØ×ø±êÏµÏÂµÄ±íÊ¾
-psi = 0;
+x = 90;%30;
+y = -40;%0;     %³õÊ¼Ê±¿ÌµÄÎ»ÖÃÔÚ±±¶«µØ×ø±êÏµÏÂµÄ±íÊ¾
+psi = -1.57;
 u0 = 0.3 * ones(1,N);
 x0 = zeros(1,3);
 step = V * T;
@@ -42,79 +42,91 @@ Dis = 0;
 COOPCost = 0;
 
 %% Ô²¹ì¼£·½³Ì
-     R = 295;
-     splinelength = 2 * pi * R;     
-     s = 10;    
+%     R = 300;
+     splinelength = 1720;%2 * pi * R;     
+     s = 410;    
+     
+%% communication   
     
-     %theta = s / R;
-     % if theta > pi
-     %           theta = theta - 2 * pi;
-     %   elseif theta < - pi
-     %           theta = theta + 2 * pi;
-     %   end	  
-     %xf = R * cos(theta);
-     %yf = R * sin(theta);
-     %xprim = -sin(theta);
-     %yprim = cos(theta);
-     %psif = atan2(yprim,xprim);
-     %if theta <= 0 
-     %   psif = theta + pi/2;
-    %elseif theta <= pi/2
-     %   psif = theta + pi/2;
-    %elseif theta > pi/2
-     %       psif = 3*pi/2 - theta;
-     %   end
-     
-     
-     %psif = -pi - theta;
-     
-%% communication     
-    receive_server = tcpip('0.0.0.0', 30000, 'NetworkRole', 'server');
-%Open a connection. This will not return until a connection is received.
-%set(t,'BytesAvailable',100)
-    fopen(receive_server);
-    %send_client = tcpip('localhost', 30001, 'NetworkRole', 'client');
-    %fopen(send_client)
-    send_client = tcpip('localhost', 30001, 'NetworkRole', 'client');
-    fopen(send_client)
 
-     
+    send_client_1 = tcpip('localhost', 30001, 'NetworkRole', 'client');
+    fopen(send_client_1)
+    
+    success = 1
 
+    send_client_2 = tcpip('localhost', 30004, 'NetworkRole', 'client');
+    fopen(send_client_2)
+    
+    success = 2
+
+    receive_server_1 = tcpip('127.0.0.1', 30006, 'NetworkRole', 'server');
+    fopen(receive_server_1)
+    
+    success = 3
+    
+    receive_server_2 = tcpip('127.0.0.1', 30007, 'NetworkRole', 'server');
+    fopen(receive_server_2)
+    
+    success = 4
+    
+   % receive_server_3 = tcpip('127.0.0.1', 30008, 'NetworkRole', 'server');
+   % fopen(receive_server_3)
+    
+   % success = 5
+
+    %pause(2)
+    %send_client_3 = tcpip('localhost', 30011, 'NetworkRole', 'client');
+    %fopen(send_client_3)
+    %success = 6
 
 %% The iterative process
 mpciter = 1;
 while(mpciter < mpciterations)
+
+    turns = 1;
     if s >= splinelength
         s = 10;  %ÄæÊ±Õë·½Ïò£¬sÔö´ó 
 		%break;
+        turns = turns+1;
     end
 	
     %%%%% The prediction of the N reference points 
     count = 1;
-    
+    s_temp = 0;
     while count <= N
         s_temp = s + (count - 1) * step;
-        [xref(count,1), xref(count,2), xref(count,3)] = getRef(s_temp, N , R);		
+        [xref(count,1), xref(count,2), xref(count,3)] = rectangle(s_temp, turns);		
         count = count + 1;
     end
     %% Step (1) of the NMPC algorithm: Obtain new initial value
     x0 = [x, y, psi];    %Ã¿Ò»Ê±¿Ì³õÊ¼×´Ì¬ÔÚ±±¶«µØ×ø±êÏµÏÂµÄ×ø±ê±íÊ¾
-	%x0_1 = [x_1, y_1, psi_1];
-	
-	 %[other_state, other_u0] = server1();
-     rec = fread(receive_server, 8, 'double');
-     %rec = fscanf(receive_server, '%f', 8)
+
+     rec = fread(receive_server_1, 8, 'double')
      size = whos('rec');
      if(size.size>0)
      other_state(1,:) = rec(1:3);
      other_u0(1,:) = rec(4:8);
-     X12(mpciter)=rec(1);
-    Y12(mpciter)=rec(2);
-     end   
+     X3rec(1,mpciter)=rec(1);
+     Y3rec(1,mpciter)=rec(2);
+     end
      
-	%other_state(1,:) = x0_1;  %%Ã¿Ò»ÐÐ´ú±íÒ»¼ÜÁÚ»ú
-	%other_u0(1,:) = u0_1;
-    %num = zeros(1,2);
+     rec = fread(receive_server_2, 8, 'double')
+     size = whos('rec');
+     if(size.size>0)
+     other_state(2,:) = rec(1:3);
+     other_u0(2,:) = rec(4:8);
+     X3rec(2,mpciter)=rec(1);
+     Y3rec(2,mpciter)=rec(2);
+     end
+     
+     %rec = fread(receive_server_3, 8, 'double')
+    % size = whos('rec');
+     %if(size.size>0)
+    % other_state(3,:) = rec(1:3);
+    % other_u0(3,:) = rec(4:8);
+   %  X3rec(3,mpciter)=rec(1);
+   %  Y3rec(3,mpciter)=rec(2);
+   %  end   
     
     %% Step (2) of the NMPC algorithm: Solve the optimal control problem
     [u_new, V_current, exitflag, output, Dis, COOPCost] = solveOptimalControlProblem_multi ...
@@ -123,32 +135,32 @@ while(mpciter < mpciterations)
             N, t0, x0, u0, T, wind, xref, other_state, other_u0);
     %   Store closed loop data
 	u0 = shiftHorizon(u_new);
-    %Time(mpciter)=T*(mpciter-1);
-    X1(mpciter) = x;
-    Y1(mpciter) = -y; % Y records the coordination in X-Y coordination system
-    PSI1(mpciter) = psi;
-    XC1(mpciter) = xref(1,1);
-    YC1(mpciter) = xref(1,2);
-    PSIF1(mpciter) = xref(1,3);
-    JVALUE1(mpciter) = V_current;
-    UCON1(mpciter) = u_new(1);
-    FLAG1(mpciter) = exitflag;
-    Dis1(mpciter) = Dis;
-    COOPCost1(mpciter) = COOPCost;
+    
+    X3(mpciter) = x;
+    Y3(mpciter) = -y; % Y records the coordination in X-Y coordination system
+    PSI3(mpciter) = psi;
+    XC3(mpciter) = xref(1,1);
+    YC3(mpciter) = -xref(1,2);
+    PSIF3(mpciter) = xref(1,3);
+    JVALUE3(mpciter) = V_current;
+    UCON3(mpciter) = u_new(1);
+    FLAG3(mpciter) = exitflag;
+    Dis3(mpciter) = Dis;
+    COOPCost3(mpciter) = COOPCost;
     
   
-    send_data = zeros(1,6);
+    send_data = zeros(1,8);
+    %send_data(1) = 2;
     send_data(1:3)=[x,y,psi];
     send_data(4:8)=u0;
     send_data
     %fwrite(send_client, send_data)
     for i = 1:8
-        fwrite(send_client, send_data(i), 'double') 
+        fwrite(send_client_1, send_data(i), 'double')
+        fwrite(send_client_2, send_data(i), 'double')
+      %  fwrite(send_client_3, send_data(i), 'double')
     end
-    %fprintf(send_client, '%f',send_data)
-    %   Prepare restart
     
-	
     t0 = t0 + T;
     %% Step (3) of the NMPC algorithm: Apply control to process
     x = x0(1) + T/2 * (V * (cos(x0(3)) + cos(x0(3) + u_new(1))) + 2 * wind(1));
@@ -162,28 +174,32 @@ while(mpciter < mpciterations)
     end	
 		
     ds = sqrt((x - xref(1,1))^2 + (y - xref(1,2))^2);
-    if ds > 40
+    if ds > 30
             s = s;
     else
-            s = s + 20;
+            s = s + 15;
     end  
 	    mpciter = mpciter+1  
 end
 
-fclose(receive_server);
-fclose(send_client);
+fclose(receive_server_1);
+fclose(receive_server_2);
+%fclose(receive_server_3);
+fclose(send_client_1);
+fclose(send_client_2);
+%fclose(send_client_3);
 
-save('D:\03.code\data_analysis\multi_circle\UAV1_test0830_R295_2.mat','X1','Y1', 'PSI1', 'XC1','YC1','PSIF1', 'JVALUE1','UCON1', 'FLAG1', 'Dis1', 'COOPCost1', 'X12', 'Y12' );
+save('D:\03.code\data_analysis\four_UAV_test\rectangle0904_2_uav3.mat','X3','Y3', 'PSI3', 'XC3','YC3','PSIF3', 'JVALUE3','UCON3', 'FLAG3', 'Dis3', 'COOPCost3', 'X3rec', 'Y3rec' );
 %% Plot 
 figure
 %plot(xctlp,yctlp,':'); % »æÖÆ¿ØÖÆ¶à±ßÐÎ£»
 %hold on; % Ä¬ÈÏÎªhold off£¬´ËÃüÁîÓÃÀ´±£Áô¿ØÖÆ¶à±ßÐÎµÄÍ¼ÐÎ£»
 
-plot(X1,Y1,'b')
+plot(X3,Y3,'b')
 hold on;
 %plot(X1,Y1,'g')
 %hold on;
-plot(XC1,YC1,'r')
+plot(XC3,YC3,'r')
 hold on;
 axis equal;
 
@@ -191,16 +207,17 @@ end
 
 % need thinking % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % 
 function cost = runningcosts(x, xd, u)
-    cost = (x(1) - xd(1))^2 + (x(2) - xd(2))^2;%+norm(u,2)^2;
+    %cost = (x(1) - xd(1))^2 + (x(2) - xd(2))^2;%+norm(u,2)^2;
+    cost = norm(x - xd, 2)^2;
 end
 
 function cost = terminalcosts(t, x)
 
-    cost = 0.0;
+    cost = 0.0;   % how to calculate and judge
 end
 
 function cost = coopCost(x, x_others)
-    k1 = 100;
+    k1 = 200;
     %k2 = 25;
     sigma = 100;%200;
     cost = 0.0;
@@ -240,13 +257,18 @@ end
 
 function [c,ceq] = collAvoid_constraints(system, x,t0, N, T, x_other)
     c = 0;
-	d_safe = 40;
+	d_safe = 50;
     num_of_others = size(x_other, 1);
 	for i = 1:num_of_others
 		dis_2 = (x(1) - x_other(i,1))^2 + (x(2) - x_other(i,2))^2;
-		
-		c_add = d_safe^2 - dis_2;
+		if dis_2 > 10000
+            c_add = 0;
+        else
+            c_add = d_safe^2 - dis_2;
+        end
         c   = c + c_add;
+        
+        
 	end
     ceq = [];
 end
@@ -301,24 +323,47 @@ function [xref, yref, psiref] = getRef(s, N, R)
         end
 end
 
-function [xref, yref, psiref] = getRef_2(s, N, R)
-% along the direction of circle
-     theta = s / R;
-      if theta > pi
-                theta = theta - 2 * pi;
-        elseif theta < - pi
-                theta = theta + 2 * pi;
-        end	
-     xref = R * cos(theta);
-     yref = R * sin(theta);
-     xprim = -sin(theta);
-     yprim = cos(theta);
-    % psiref = atan2(yprim,xprim);
-     psiref = atan2(yprim,xprim) + 2*pi;
-     if psiref > pi
-                psiref = psiref - 2 * pi;
-     elseif psiref < - pi
-                psiref = psiref + 2 * pi;
-     end
-     
+function [x, y, psi] = straightLine(s, turns)
+    % input is the arc length
+    % climb first, drop later
+    k = 3;  % choose all k to be positive
+    b = 5;
+    x = s / sqrt(1+k^2);
+    y = -(k * x + b); % output the coordination in NED system
+    sig = mod(turns, 2);
+    if k > 0
+    	if sig == 0   % drop
+    		psi = pi - atan(k);
+    	else   %climb
+    		psi = -atan(k);
+    	end
+    elseif k < 0
+    	if sig == 0  % drop
+    		psi = - atan(k);
+    	else       % sig = 1  climb
+    		psi = -pi - atan(k);
+    	end
+    end
+end
+
+
+function [x, y, psi] = rectangle(s, turns)
+% the first, reverse the time circle
+    if s < 180
+    	x = -16 + s * 3 / 5;
+    	y = -(188 - s * 4 / 5);
+    	psi = atan2(4,3);
+    elseif s < 860
+    	x = 92 + (s - 180) * 4 / 5;
+    	y = -(44 + (s - 180) * 3 / 5);
+    	psi = atan2(-3,4);
+    elseif s < 1040
+    	x = 636 - (s - 860) * 3 / 5;
+    	y = -(452 + (s - 860) * 4 / 5);
+    	psi = - pi + atan2(4,3);
+    else
+    	x = 528 - (s - 1040) * 4 / 5;
+    	y = -(596 - (s - 1040) * 3 / 5);
+    	psi = pi - atan2(3,4);
+    end
 end

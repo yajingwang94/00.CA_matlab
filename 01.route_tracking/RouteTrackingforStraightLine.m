@@ -18,8 +18,8 @@ XC = [];
 YC = [];
 %% initial states and parameters
 t0 = 0;
-x = 30;
-y = 0;
+x = 40;
+y = -170;
 psi = 0;
 s = 10;
 u0 = 0.1 * ones(1,N);
@@ -34,7 +34,9 @@ step = V * T;
 %for i=1:5 
 %   [xctlp(i),yctlp(i)]=ConvertLL2XY(ctlp(1,1), ctlp(2,1), ctlp(1,i), ctlp(2,i));
 %end
-splinelength=2508.618390858;
+splinelength=1400;%2508.618390858;
+%s = splinelength-10;
+s = 10;
 
  
 
@@ -42,13 +44,18 @@ splinelength=2508.618390858;
 mpciter = 1;
 while(mpciter < mpciterations)
     if s >= splinelength
-        s=0;
-        break
+        s=10;
+        %break
     end
+    
+    %if s < 10 
+    %    s = splinelength -10;
+    %end
     %%%%% The prediction of the N reference points 
     count = 1;
     while count <= N
         stemp = s + (count - 1) * step;
+        %stemp = s - (count - 1) * step;
         [xref(count,1),xref(count,2),xref(count,3)] = straightLine(stemp)
         count = count + 1;
     end
@@ -67,10 +74,10 @@ while(mpciter < mpciterations)
     %Ds(mpciter)=ds;
     %Time(mpciter)=T*(mpciter-1);
     X(mpciter)=x;
-    Y(mpciter)=y;
+    Y(mpciter)=-y;
     %S(mpciter)=s;
     XC(mpciter)=xref(1,1);
-    YC(mpciter)=xref(1,2);
+    YC(mpciter)=-xref(1,2);
     %KSI(mpciter) = psi;        
       
     %   Prepare restart
@@ -89,10 +96,11 @@ while(mpciter < mpciterations)
             psi = psi+2*pi;
     end	
     ds = sqrt((x-xref(1,1))^2 + (y-xref(1,2))^2);
-    if ds > 50
+    if ds > 30
             s = s;
     else
-            s = s + 30;
+            s = s + 15;
+            %s = s - 15;
     end  
     mpciter = mpciter+1;  
 end
@@ -138,15 +146,37 @@ function [A, b, Aeq, beq, lb, ub] = linearconstraints(t, x, u)
     beq = [];
     %lb  = [15;-3];
     %ub  = [23;3];
-    lb  = [-5];
-    ub  = [5];
+    lb  = [-0.3];
+    ub  = [0.3];
 end
 
+%function [x, y, psi] = straightLine(s)
+	% input is the arc length
+%    k = 3;
+%    x = s / sqrt(1+k^2);
+%    y = -(k * x); % output the coordination in NED system
+%    psi = atan(k);
+%end
+
 function [x, y, psi] = straightLine(s)
-    k = 3;
-    x = s / sqrt(1+k^2);
-    y = k * x;
-    psi = atan(k);
+% the second, along the time circle
+   if s < 100
+    	x = 40 + s * 3 / 5;
+    	y = -(180 - s * 4 / 5);
+    	psi = atan2(4,3);
+    elseif s < 700
+    	x = 100 + (s - 100) * 4 / 5;
+    	y = -(100 + (s - 100) * 3 / 5);
+    	psi = atan2(-3,4);
+    elseif s < 800
+    	x = 580 - (s - 700) * 3 / 5;
+    	y = -(460 + (s - 700) * 4 / 5);
+    	psi = - pi + atan2(4,3);
+    else
+    	x = 520 - (s - 800) * 4 / 5;
+    	y = -(540 - (s - 800) * 3 / 5);
+    	psi = pi - atan2(3,4);
+    end                                                                                                                                        
 end
 
 function x_next = system(t, x, u, T, w)

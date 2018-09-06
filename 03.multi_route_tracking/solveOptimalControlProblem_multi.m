@@ -3,7 +3,7 @@ function [u, V, exitflag, output, dis, coopcost] = solveOptimalControlProblem_mu
     linearconstraints, system,coopCostTest, N, t0, x0, u0, T, wind, xd, other_state, other_u0)
     x = zeros(N+1, length(x0));
     x = computeOpenloopSolution(system, N, T, t0, x0, u0, wind);
-    num_of_others = size(other_state, 1);
+    num_of_others = size(other_state, 1);  %the number of rows
     if num_of_others>0
         [dis, coopcost] = coopCostTest(x0,other_state(1,:));
     else
