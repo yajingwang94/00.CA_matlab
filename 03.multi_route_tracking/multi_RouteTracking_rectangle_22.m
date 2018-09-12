@@ -12,7 +12,7 @@ wind = [0, 0, 0];
 %wind = [7.07106781, 7.07106781,0];
 %wind = [1, 1, 0];
 V = 19;
-mpciterations = 2000;
+mpciterations = 1600;
 xRef = [];
 X2 = [];
 Y2 = [];
@@ -45,34 +45,33 @@ COOPCost = 0;
      s = splinelength - 650;    % ³õÊ¼µã¶ÔÓ¦µÄ»¡³¤
     
 %% communication   
+    remotePort = 30001;  
+    udpSender = udp('192.168.43.255',remotePort);
+    set(udpSender,'OutputBufferSize',2097152);
+    set(udpSender,'TimeOut',100);
+    fopen(udpSender);
 
-    send_client_1 = tcpip('localhost', 30000, 'NetworkRole', 'client');
-    fopen(send_client_1)
-    
-    success = 1
-    
-    receive_server_1 = tcpip('127.0.0.1', 30003, 'NetworkRole', 'server');
-    fopen(receive_server_1)
-    
-    success = 2
-    
-    receive_server_2 = tcpip('127.0.0.1', 30004, 'NetworkRole', 'server');
-    fopen(receive_server_2)
-    
-    success = 3
-    
-    send_client_2 = tcpip('localhost', 30007, 'NetworkRole', 'client');
-    fopen(send_client_2)  
-    
-    success = 4
-    %receive_server_3 = tcpip('127.0.0.1', 30005, 'NetworkRole', 'server');
-    %fopen(receive_server_3)
-    
-   % success = 5
+    portUAV1 = 30000;
+    portUAV3 = 30002;
+    portUAV4 = 30003;
 
-    %send_client_3 = tcpip('localhost', 30010, 'NetworkRole', 'client');
-    %fopen(send_client_3)
-    %success = 6
+    udpReceiver1 = udp('','LocalPort',portUAV1);
+    %set(udpReceiver1,'OutputBufferSize',1048576);
+    set(udpReceiver1,'TimeOut',100);
+    udpReceiver1.EnablePortSharing = 'on';
+    fopen(udpReceiver1);
+
+    udpReceiver2 = udp('','LocalPort',portUAV3);
+    %set(udpReceiver2,'OutputBufferSize',8192);
+    set(udpReceiver2,'TimeOut',100);
+    udpReceiver2.EnablePortSharing = 'on';
+    fopen(udpReceiver2);
+
+    udpReceiver3 = udp('','LocalPort',portUAV4);
+    %set(udpReceiver3,'OutputBufferSize',8192);
+    set(udpReceiver3,'TimeOut',100);
+    udpReceiver3.EnablePortSharing = 'on';
+    fopen(udpReceiver3);
 
 %% The iterative process
 mpciter = 1;
@@ -95,32 +94,41 @@ while(mpciter < mpciterations)
     %% Step (1) of the NMPC algorithm: Obtain new initial value
     x0 = [x, y, psi];     %Ã¿Ò»Ê±¿Ì³õÊ¼×´Ì¬ÔÚ±±¶«µØ×ø±êÏµÏÂµÄ×ø±ê±íÊ¾
 	
-     rec = fread(receive_server_1, 8, 'double')
-     size = whos('rec');
+%communication
+    send_data = zeros(1,8);
+    %(1) = 1;
+    send_data(1:3)=x0;
+    send_data(4:8)=u0;
+    send_data
+    fwrite(udpSender,send_data,'float')
+
+
+     rec_1 = fread(udpReceiver1, 8, 'float')
+     size = whos('rec_1');
      if(size.size>0)
-     other_state(1,:) = rec(1:3);
-     other_u0(1,:) = rec(4:8);
-     X2rec(1,mpciter)=rec(1);
-     Y2rec(1,mpciter)=rec(2);
+     other_state(1,:) = rec_1(1:3);
+     other_u0(1,:) = rec_1(4:8);
+     X2rec(1,mpciter)=rec_1(1);
+     Y2rec(1,mpciter)=rec_1(2);
      end
      
-     rec = fread(receive_server_2, 8, 'double')
-     size = whos('rec');
+     rec_2 = fread(udpReceiver2, 8, 'float')
+     size = whos('rec_2');
      if(size.size>0)
-     other_state(2,:) = rec(1:3);
-     other_u0(2,:) = rec(4:8);
-     X2rec(2,mpciter)=rec(1);
-     Y2rec(2,mpciter)=rec(2);
+     other_state(2,:) = rec_2(1:3);
+     other_u0(2,:) = rec_2(4:8);
+     X2rec(2,mpciter)=rec_2(1);
+     Y2rec(2,mpciter)=rec_2(2);
      end
-     
-    % rec = fread(receive_server_3, 8, 'double')
-    % size = whos('rec');
-    % if(size.size>0)
-    % other_state(3,:) = rec(1:3);
-   %  other_u0(3,:) = rec(4:8);
-   %  X2rec(3,mpciter)=rec(1);
-   %  Y2rec(3,mpciter)=rec(2);
-   %  end
+
+     rec_3 = fread(udpReceiver3, 8, 'float')
+     size = whos('rec_3');
+     if(size.size>0)
+     other_state(3,:) = rec_3(1:3);
+     other_u0(3,:) = rec_3(4:8);
+     X2rec(3,mpciter)=rec_3(1);
+     Y2rec(3,mpciter)=rec_3(2);
+     end
      
     
     %% Step (2) of the NMPC algorithm: Solve the optimal control problem
@@ -143,18 +151,6 @@ while(mpciter < mpciterations)
     Dis2(mpciter) = Dis;
     COOPCost2(mpciter) = COOPCost;
     
-    %Ä¿Ç°´«ÊäµÄÐÅÏ¢Ö»°üº¬µ±Ç°Ê±¿ÌµÄ×´Ì¬ÐÅÏ¢ÒÔ¼°µ±Ç°Ê±¿ÌµÄÓÅ»¯¿ØÖÆÐòÁÐ£¬²»°üº¬Î´À´Ô¤²âÊ±ÓòÄÚµÄ²Î¿¼×´Ì¬ÐÅÏ¢ 
-    send_data = zeros(1,8);
-    %send_data(1) = 2;
-    send_data(1:3)=[x,y,psi];
-    send_data(4:8)=u0;
-    send_data
-    %fwrite(send_client, send_data)
-    for i = 1:8
-        fwrite(send_client_1, send_data(i), 'double')
-        fwrite(send_client_2, send_data(i), 'double')
-      %  fwrite(send_client_3, send_data(i), 'double')
-    end
 	
     t0 = t0 + T;
     %% Step (3) of the NMPC algorithm: Apply control to process
@@ -176,14 +172,16 @@ while(mpciter < mpciterations)
     end  
     mpciter = mpciter+1 
 end
-fclose(receive_server_1);
-fclose(receive_server_2);
-%fclose(receive_server_3);
-fclose(send_client_1);
-fclose(send_client_2);
-%fclose(send_client_3);
+fclose(udpSender)
+delete(udpSender)
+fclose(udpReceiver1)
+delete(udpReceiver1)
+fclose(udpReceiver2)
+delete(udpReceiver2)
+fclose(udpReceiver3)
+delete(udpReceiver3)
 
-save('D:\03.code\data_analysis\four_UAV_test\rectangle0904_2_uav2.mat','X2','Y2', 'PSI2', 'XC2','YC2','PSIF2', 'JVALUE2', 'UCON2', 'FLAG2', 'Dis2', 'COOPCost2', 'X2rec', 'Y2rec');
+save('D:\05.Code\data_analysis\four_UAV_test\rectangle0912_1_uav2.mat','X2','Y2', 'PSI2', 'XC2','YC2','PSIF2', 'JVALUE2', 'UCON2', 'FLAG2', 'Dis2', 'COOPCost2', 'X2rec', 'Y2rec');
 %% Plot 
 figure
 plot(X2,Y2,'b')
